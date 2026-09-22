@@ -1,0 +1,45 @@
+﻿@model List<WebApplication1.Models.ProjectCostReportModel>
+@{
+    ViewData["Title"] = "Project Cost Calculation Report";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Project Cost Calculation Report</h2>
+        <button class="btn btn-outline-secondary" onclick="window.print()">Print / Export</button>
+    </div>
+    <hr />
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Project Name</th>
+                    <th class="text-end">Actual Cost</th>
+                    <th class="text-end">Approved Budget</th>
+                    <th class="text-end">Cost Variance</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model == null || !Model.Any())
+                {
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">No project cost data found.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@item.ProjectName</td>
+                            <td class="text-end">@item.ActualCost.ToString("N2")</td>
+                            <td class="text-end">@item.ApprovedBudget.ToString("N2")</td>
+                            <td class="text-end">@item.CostVariance.ToString("N2")</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

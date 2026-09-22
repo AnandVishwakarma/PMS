@@ -1,0 +1,164 @@
+﻿@{
+    ViewData["Title"] = "Resource Allocation";
+    var projects = ViewBag.Projects as List<WebApplication1.Models.ProjectModel> ?? new();
+    var resources = ViewBag.Resources as List<WebApplication1.Models.ResourceModel> ?? new();
+}
+
+<div class="container mt-4">
+    <h2>Resource Allocation</h2>
+    <hr />
+
+    <div class="card p-3 mb-4 bg-light">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Project</label>
+                <select id="ddlProject" class="form-select">
+                    <option value="">-- Select Project --</option>
+                    @foreach (var p in projects)
+                    {
+                        <option value="@p.ProjectId">@p.ProjectName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Resource</label>
+                <select id="ddlResource" class="form-select">
+                    <option value="">-- Select Resource --</option>
+                    @foreach (var r in resources)
+                    {
+                        <option value="@r.ResourceId">@r.FullName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Date</label>
+                <input type="date" id="txtDate" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Hours Worked</label>
+                <input type="number" id="txtHours" step="0.5" class="form-control" placeholder="e.g. 8.0" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Task Complexity (1-10)</label>
+                <input type="number" id="txtComplexity" min="1" max="10" class="form-control" placeholder="1 to 10" />
+            </div>
+        </div>
+        <div class="mt-3">
+            <button type="button" class="btn btn-primary" onclick="addToGrid()">Add</button>
+        </div>
+    </div>
+
+    <h4>Allocation Grid</h4>
+    <table class="table table-bordered table-striped" id="tblAllocationGrid">
+        <thead class="table-dark">
+            <tr>
+                <th>Project</th>
+                <th>Resource</th>
+                <th>Date</th>
+                <th>Hours Worked</th>
+                <th>Task Complexity</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr id="emptyRow">
+                <td colspan="6" class="text-center text-muted">No items in the temporary grid.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="text-end mt-3">
+        <button type="button" class="btn btn-success btn-lg" id="btnFinalSubmit" onclick="submitAllocations()" disabled>
+            Final Submit Allocation
+        </button>
+    </div>
+</div>
+
+<script>
+    let tempAllocations = [];
+
+    function addToGrid() {
+        const ddlProject = document.getElementById("ddlProject");
+        const ddlResource = document.getElementById("ddlResource");
+        const txtDate = document.getElementById("txtDate").value;
+        const txtHours = document.getElementById("txtHours").value;
+        const txtComplexity = document.getElementById("txtComplexity").value;
+
+        if (!ddlProject.value || !ddlResource.value || !txtDate || !txtHours || !txtComplexity) {
+            alert("Please fill in all controls before adding to the grid.");
+            return;
+        }
+
+        const item = {
+            projectId: parseInt(ddlProject.value),
+            projectName: ddlProject.options[ddlProject.selectedIndex].text,
+            resourceId: parseInt(ddlResource.value),
+            resourceName: ddlResource.options[ddlResource.selectedIndex].text,
+            date: txtDate,
+            hourseWorked: parseFloat(txtHours),
+            taskComplexity: parseInt(txtComplexity)
+        };
+
+        tempAllocations.push(item);
+        renderGrid();
+
+        
+        document.getElementById("txtHours").value = "";
+        document.getElementById("txtComplexity").value = "";
+    }
+
+    function removeFromGrid(index) {
+        tempAllocations.splice(index, 1);
+        renderGrid();
+    }
+
+    function renderGrid() {
+        const tbody = document.querySelector("#tblAllocationGrid tbody");
+        tbody.innerHTML = "";
+
+        if (tempAllocations.length === 0) {
+            tbody.innerHTML = `<tr id="emptyRow"><td colspan="6" class="text-center text-muted">No items in the temporary grid.</td></tr>`;
+            document.getElementById("btnFinalSubmit").disabled = true;
+            return;
+        }
+
+        tempAllocations.forEach((item, index) => {
+            const row = `
+                <tr>
+                    <td>${item.projectName}</td>
+                    <td>${item.resourceName}</td>
+                    <td>${item.date}</td>
+                    <td>${item.hourseWorked.toFixed(2)}</td>
+                    <td>${item.taskComplexity}</td>
+                    <td><button class="btn btn-sm btn-danger" onclick="removeFromGrid(${index})">Remove</button></td>
+                </tr>`;
+            tbody.innerHTML += row;
+        });
+
+        document.getElementById("btnFinalSubmit").disabled = false;
+    }
+
+    function submitAllocations() {
+        if (tempAllocations.length === 0) return;
+
+        fetch('/Management/FinalSubmitAllocation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(tempAllocations)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                tempAllocations = [];
+                renderGrid();
+            } else {
+                alert("Submission error: " + (data.message || "Failed"));
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Error submitting allocation records.");
+        });
+    }
+</script>
